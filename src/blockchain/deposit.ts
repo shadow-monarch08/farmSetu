@@ -16,6 +16,7 @@ export const depositAlgo = async (
     const params = await algodClient.getTransactionParams().do();
 
     const appAddress = algosdk.getApplicationAddress(appId);
+    console.log("App Address:", appAddress);
 
     // 💰 Txn 1: Payment
     const paymentTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
@@ -52,5 +53,5 @@ export const depositAlgo = async (
   } catch (error) {
     console.error("Deposit failed:", error);
   }
-  console.log("App Address:", appAddress);
+  
 };
