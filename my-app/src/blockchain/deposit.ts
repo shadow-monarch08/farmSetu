@@ -90,8 +90,8 @@ export const depositAlgo = async (
     const txResponse = await algodClient.sendRawTransaction(signedTxn).do();
     const confirmation = await algosdk.waitForConfirmation(algodClient, txResponse.txid, 4);
 
-    console.log("✅ Deposit success:", txResponse.txid);
-    console.log("✅ Payment was sent to app address:", appAddress);
+    console.log("Deposit success:", txResponse.txid);
+    console.log("Payment was sent to app address:", appAddress);
 
     const confirmedRound = Number(
       (confirmation as unknown as { ["confirmed-round"]?: number })["confirmed-round"] ?? 0

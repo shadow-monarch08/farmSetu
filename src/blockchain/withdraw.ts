@@ -47,7 +47,7 @@ export const withdrawAlgo = async (
     const txResponse = await algodClient.sendRawTransaction(signedTxn).do();
     const confirmation = await algosdk.waitForConfirmation(algodClient, txResponse.txid, 4);
 
-    console.log("✅ Withdrawal initiated:", txResponse.txid);
+    console.log("Withdrawal initiated:", txResponse.txid);
 
     const confirmedRound = Number(
       (confirmation as unknown as { ["confirmed-round"]?: number })["confirmed-round"] ?? 0

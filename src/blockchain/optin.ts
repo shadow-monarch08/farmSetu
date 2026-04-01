@@ -39,7 +39,7 @@ export const optInApp = async (
     const hasTotalSaved = keyValue.some((item: any) => atob(item.key) === "totalSaved");
 
     if (hasTotalSaved) {
-      console.log("✅ Account already initialized for savings state");
+      console.log("Account already initialized for savings state");
       return;
     }
 
@@ -55,7 +55,7 @@ export const optInApp = async (
     const initResponse = await algodClient.sendRawTransaction(signedInitTxn).do();
     await algosdk.waitForConfirmation(algodClient, initResponse.txid, 4);
 
-    console.log("✅ Opt-in successful");
+    console.log("Opt-in successful");
 
   } catch (error) {
     console.error("Opt-in failed:", error);

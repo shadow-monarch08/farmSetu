@@ -14,7 +14,7 @@ export function AchievementBadge({ title, description, unlocked }: AchievementBa
       }`}
     >
       <div className="mb-1 flex items-center gap-2">
-        <span className="text-lg">{unlocked ? "🏅" : "🔒"}</span>
+        <span className="text-xs uppercase tracking-wider text-slate-300">{unlocked ? "Unlocked" : "Locked"}</span>
         <h4 className="text-sm font-semibold text-slate-100">{title}</h4>
       </div>
       <p className="text-xs text-slate-400">{description}</p>

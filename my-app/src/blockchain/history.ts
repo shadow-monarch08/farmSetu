@@ -7,6 +7,7 @@ export type DepositHistoryItem = {
   confirmedRound: number;
   timestamp?: number;
   type: "deposit" | "withdrawal" | "lock"; // Transaction type
+  status?: "pending" | "confirmed";
 };
 
 type IndexerTx = {
@@ -99,6 +100,7 @@ export const getDepositHistory = async (
         confirmedRound: Number(txn["confirmed-round"] ?? 0),
         timestamp: txn["round-time"],
         type: "deposit",
+        status: "confirmed",
       });
     }
 
@@ -145,6 +147,7 @@ export const getDepositHistory = async (
         confirmedRound: Number(txn["confirmed-round"] ?? 0),
         timestamp: txn["round-time"],
         type: methodName as "deposit" | "withdrawal" | "lock",
+        status: "confirmed",
       });
     }
 

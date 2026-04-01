@@ -74,7 +74,7 @@ if (!appId) {
   return null;
 }
 
-console.log("✅ App ID:", appId);
+console.log("App ID:", appId);
 
 return Number(appId);
 

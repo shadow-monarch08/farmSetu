@@ -447,21 +447,40 @@ function App() {
 
     try {
       const numericAppId = Number(appId);
+      const numericWithdrawAmount = Number(withdrawAmount);
+      const pendingTxId = `pending-withdrawal-${crypto.randomUUID()}`;
+
+      setDepositHistory((current) =>
+        mergeHistoryItems(current, [
+          {
+            txId: pendingTxId,
+            appId: numericAppId,
+            amountAlgo: numericWithdrawAmount,
+            confirmedRound: Number.MAX_SAFE_INTEGER,
+            timestamp: Math.floor(Date.now() / 1000),
+            type: "withdrawal",
+            status: "pending",
+          },
+        ])
+      );
+
       setStatusMessage("Processing withdrawal...");
 
       await withdrawAlgo(
         accountAddress,
         numericAppId,
-        Number(withdrawAmount),
+        numericWithdrawAmount,
         walletRef.current
       );
 
       await fetchSavings();
       await fetchDepositHistory(numericAppId);
+      setDepositHistory((current) => current.filter((item) => item.txId !== pendingTxId));
 
       setStatusMessage("Withdrawal initiated! Funds reduced from vault.");
       setWithdrawAmount("");
     } catch (err) {
+      setDepositHistory((current) => current.filter((item) => !item.txId.startsWith("pending-withdrawal-")));
       console.error(err);
       const message = err instanceof Error ? err.message : "Something went wrong.";
       setStatusMessage(`Withdrawal failed: ${message}`);
@@ -589,7 +608,7 @@ function App() {
             <div className="mt-6 space-y-6 border-t border-slate-700 pt-6">
               {/* Withdrawal Section */}
               <div className="rounded-2xl border border-slate-700/60 bg-slate-950/50 p-4">
-                <h3 className="mb-4 text-sm uppercase tracking-[0.2em] text-slate-300">💸 Withdrawal Section</h3>
+                <h3 className="mb-4 text-sm uppercase tracking-[0.2em] text-slate-300">Withdrawal Section</h3>
                 <label className="mb-3 block text-xs uppercase tracking-widest text-slate-400">Withdrawal Amount (ALGO)</label>
                 <input
                   className="mb-3 w-full rounded-xl border border-slate-700 bg-slate-950/80 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-red-400 focus:ring-2 focus:ring-red-400/20"
@@ -606,13 +625,13 @@ function App() {
                   onClick={handleWithdraw}
                   disabled={!appId || !withdrawAmount || !isConnected}
                 >
-                  💸 Withdraw Now
+                  Withdraw Now
                 </NeonButton>
               </div>
 
               {/* Lock-In Section */}
               <div className="rounded-2xl border border-slate-700/60 bg-slate-950/50 p-4">
-                <h3 className="mb-4 text-sm uppercase tracking-[0.2em] text-slate-300">🔒 Lock Assets Section</h3>
+                <h3 className="mb-4 text-sm uppercase tracking-[0.2em] text-slate-300">Lock Assets Section</h3>
                 <p className="mb-4 text-xs text-slate-400">Requires deposits • Cannot withdraw while locked</p>
                 <label className="mb-3 block text-xs uppercase tracking-widest text-slate-400">Lock Duration (Days)</label>
                 <input
@@ -629,7 +648,7 @@ function App() {
                   onClick={handleLockIn}
                   disabled={!appId || !lockDays || !isConnected}
                 >
-                  🔒 Lock Assets Now
+                  Lock Assets Now
                 </NeonButton>
               </div>
             </div>
@@ -637,7 +656,7 @@ function App() {
             {lockExpiry && (
               <div className="mt-4 rounded-2xl border border-amber-400/20 bg-amber-500/8 p-4">
                 <p className="text-sm text-amber-200">
-                  🔒 Assets locked until {new Date(lockExpiry * 1000).toLocaleDateString()}
+                  Assets locked until {new Date(lockExpiry * 1000).toLocaleDateString()}
                 </p>
               </div>
             )}
@@ -710,9 +729,17 @@ function App() {
               {depositHistory.slice(0, 9).map((item) => {
                 const isWithdrawal = item.type === "withdrawal";
                 const isLock = item.type === "lock";
-                const sign = isWithdrawal ? "-" : isLock ? "🔒" : "+";
+                const isPending = item.status === "pending";
+                const sign = isWithdrawal ? "-" : "+";
                 const amountColor = isWithdrawal ? "text-red-300" : isLock ? "text-amber-300" : "text-cyan-300";
-                const typeLabel = item.type === "deposit" ? "Deposit" : item.type === "withdrawal" ? "Withdrawal" : "Lock-In";
+                const typeLabel =
+                  isPending && isWithdrawal
+                    ? "Withdrawal in process"
+                    : item.type === "deposit"
+                      ? "Deposit"
+                      : item.type === "withdrawal"
+                        ? "Withdrawal"
+                        : "Lock-In";
                 const typeLabelColor = isWithdrawal ? "text-red-400" : isLock ? "text-amber-400" : "text-cyan-400";
 
                 return (
@@ -727,7 +754,7 @@ function App() {
                       </span>
                     </div>
                     <p className={`mt-2 text-lg font-semibold ${amountColor}`}>
-                      {sign}{isLock ? "" : item.amountAlgo.toFixed(6) + " ALGO"}
+                      {isLock ? "Lock Applied" : `${sign}${item.amountAlgo.toFixed(6)} ALGO`}
                     </p>
                     <p className="mt-1 text-xs text-slate-400">App ID #{item.appId}</p>
                     <p className="mt-1 text-xs text-slate-500">Round {item.confirmedRound}</p>
