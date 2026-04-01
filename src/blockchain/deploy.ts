@@ -49,7 +49,7 @@ export const deployContract = async (
       clearProgram,
       numGlobalInts: 3,
       numGlobalByteSlices: 0,
-      numLocalInts: 1,
+      numLocalInts: 2,
       numLocalByteSlices: 0,
     });
 
