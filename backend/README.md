@@ -57,6 +57,12 @@ $env:UPDATED_PRICE="12" # ALGO
 npm run e2e:forward
 ```
 
+## 5) Run Regression Checks
+
+```powershell
+npm run test:regression
+```
+
 ## Notes
 
 - This is a minimal MVP core: create, accept (with deposit), oracle update, settle.

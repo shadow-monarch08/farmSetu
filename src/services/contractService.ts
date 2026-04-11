@@ -37,6 +37,11 @@ function ensureAddress(address: string, name: string) {
   }
 }
 
+function toRound(value: number | bigint | undefined): number | undefined {
+  if (typeof value === "bigint") return Number(value);
+  return typeof value === "number" ? value : undefined;
+}
+
 async function sendTransactions(
   wallet: WalletInstance,
   txns: SignerTransaction[],
@@ -162,7 +167,7 @@ async function createForwardContractOnChain(
   input: CreateContractInput,
   wallet: WalletInstance,
   userAddress: string
-): Promise<{ appId: number; txnId: string }> {
+): Promise<{ appId: number; txnId: string; confirmedRound?: number }> {
   ensureAddress(userAddress, "User address");
   ensureAddress(input.oracleAddress, "Oracle address");
   const { approvalProgram, clearProgram } = await ensureCompiledPrograms();
@@ -193,14 +198,14 @@ async function createForwardContractOnChain(
   const appId = Number(confirmed.applicationIndex);
   rememberAppId(appId);
 
-  return { appId, txnId: txId };
+  return { appId, txnId: txId, confirmedRound: toRound(confirmed.confirmedRound) };
 }
 
 async function acceptContractOnChain(
   input: AcceptContractInput,
   wallet: WalletInstance,
   userAddress: string
-): Promise<{ txnId: string }> {
+): Promise<{ txnId: string; confirmedRound?: number }> {
   const params = await algodClient.getTransactionParams().do();
   const appAddress = algosdk.getApplicationAddress(input.contractId);
 
@@ -221,17 +226,17 @@ async function acceptContractOnChain(
 
   algosdk.assignGroupID([paymentTxn, callTxn]);
   const txId = await sendTransactions(wallet, [{ txn: paymentTxn }, { txn: callTxn }], userAddress);
-  await waitConfirmed(txId);
+  const confirmed = await waitConfirmed(txId);
   rememberAppId(input.contractId);
 
-  return { txnId: txId };
+  return { txnId: txId, confirmedRound: toRound(confirmed.confirmedRound) };
 }
 
 async function updatePriceOnChain(
   input: UpdatePriceInput,
   wallet: WalletInstance,
   userAddress: string
-): Promise<{ txnId: string }> {
+): Promise<{ txnId: string; confirmedRound?: number }> {
   const params = await algodClient.getTransactionParams().do();
   const currentPriceMicro = algoToMicroAlgos(input.currentPrice);
   const callTxn = algosdk.makeApplicationNoOpTxnFromObject({
@@ -242,17 +247,17 @@ async function updatePriceOnChain(
   });
 
   const txId = await sendTransactions(wallet, [{ txn: callTxn }], userAddress);
-  await waitConfirmed(txId);
+  const confirmed = await waitConfirmed(txId);
   rememberAppId(input.contractId);
 
-  return { txnId: txId };
+  return { txnId: txId, confirmedRound: toRound(confirmed.confirmedRound) };
 }
 
 async function settleContractOnChain(
   input: SettleContractInput,
   wallet: WalletInstance,
   userAddress: string
-): Promise<{ txnId: string; settlementAmount: number }> {
+): Promise<{ txnId: string; settlementAmount: number; confirmedRound?: number }> {
   const params = await algodClient.getTransactionParams().do();
   const settleParams = { ...params, flatFee: true, fee: 2_000 };
 
@@ -264,10 +269,14 @@ async function settleContractOnChain(
   });
 
   const txId = await sendTransactions(wallet, [{ txn: callTxn }], userAddress);
-  await waitConfirmed(txId);
+  const confirmed = await waitConfirmed(txId);
 
   const updated = await fetchContractFromChain(input.contractId);
-  return { txnId: txId, settlementAmount: updated.settlement_amount };
+  return {
+    txnId: txId,
+    settlementAmount: updated.settlement_amount,
+    confirmedRound: toRound(confirmed.confirmedRound),
+  };
 }
 
 function readContractsLocal(): FarmSetuForwardContract[] {
@@ -301,7 +310,9 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function createForwardContractLocal(input: CreateContractInput): Promise<{ appId: number; txnId: string }> {
+async function createForwardContractLocal(
+  input: CreateContractInput
+): Promise<{ appId: number; txnId: string; confirmedRound?: number }> {
   await sleep(250);
 
   const appId = nextContractIdLocal();
@@ -327,7 +338,7 @@ async function createForwardContractLocal(input: CreateContractInput): Promise<{
 async function acceptContractLocal(
   input: AcceptContractInput,
   userAddress: string
-): Promise<{ txnId: string }> {
+): Promise<{ txnId: string; confirmedRound?: number }> {
   await sleep(200);
   const contracts = readContractsLocal();
   const idx = contracts.findIndex((c) => c.appId === input.contractId);
@@ -347,7 +358,7 @@ async function acceptContractLocal(
   return { txnId: `local_accept_${Date.now()}` };
 }
 
-async function updatePriceLocal(input: UpdatePriceInput): Promise<{ txnId: string }> {
+async function updatePriceLocal(input: UpdatePriceInput): Promise<{ txnId: string; confirmedRound?: number }> {
   await sleep(150);
   const contracts = readContractsLocal();
   const idx = contracts.findIndex((c) => c.appId === input.contractId);
@@ -360,7 +371,7 @@ async function updatePriceLocal(input: UpdatePriceInput): Promise<{ txnId: strin
 
 async function settleContractLocal(
   input: SettleContractInput
-): Promise<{ txnId: string; settlementAmount: number }> {
+): Promise<{ txnId: string; settlementAmount: number; confirmedRound?: number }> {
   await sleep(200);
   const contracts = readContractsLocal();
   const idx = contracts.findIndex((c) => c.appId === input.contractId);
@@ -385,7 +396,7 @@ export async function createForwardContract(
   input: CreateContractInput,
   wallet: WalletInstance,
   userAddress: string
-): Promise<{ appId: number; txnId: string }> {
+): Promise<{ appId: number; txnId: string; confirmedRound?: number }> {
   if (isOnChainMode()) {
     return createForwardContractOnChain(input, wallet, userAddress);
   }
@@ -396,7 +407,7 @@ export async function acceptContract(
   input: AcceptContractInput,
   wallet: WalletInstance,
   userAddress: string
-): Promise<{ txnId: string }> {
+): Promise<{ txnId: string; confirmedRound?: number }> {
   if (isOnChainMode()) {
     return acceptContractOnChain(input, wallet, userAddress);
   }
@@ -407,7 +418,7 @@ export async function updatePrice(
   input: UpdatePriceInput,
   wallet: WalletInstance,
   userAddress: string
-): Promise<{ txnId: string }> {
+): Promise<{ txnId: string; confirmedRound?: number }> {
   if (isOnChainMode()) {
     return updatePriceOnChain(input, wallet, userAddress);
   }
@@ -418,7 +429,7 @@ export async function settleContract(
   input: SettleContractInput,
   wallet: WalletInstance,
   userAddress: string
-): Promise<{ txnId: string; settlementAmount: number }> {
+): Promise<{ txnId: string; settlementAmount: number; confirmedRound?: number }> {
   if (isOnChainMode()) {
     return settleContractOnChain(input, wallet, userAddress);
   }

@@ -73,14 +73,21 @@ function TransactionHistory({ transactions }: TransactionHistoryProps) {
                 </td>
                 <td className="px-6 py-4 text-xs text-slate-600">
                   {tx.txnId ? (
-                    <a
-                      href={`${explorerBaseUrl}/tx/${tx.txnId}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-semibold text-green-700 hover:underline"
-                    >
-                      {tx.txnId.slice(0, 18)}...
-                    </a>
+                    <div className="space-y-1">
+                      <a
+                        href={`${explorerBaseUrl}/tx/${tx.txnId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block font-semibold text-green-700 hover:underline"
+                      >
+                        {tx.txnId.slice(0, 18)}...
+                      </a>
+                      {typeof tx.confirmedRound === "number" && tx.confirmedRound > 0 && (
+                        <span className="text-[11px] font-medium text-slate-500">
+                          Round: {tx.confirmedRound}
+                        </span>
+                      )}
+                    </div>
                   ) : (
                     tx.error || "-"
                   )}

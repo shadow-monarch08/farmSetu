@@ -64,6 +64,7 @@ export function useContracts(
                   status: "success",
                   contractId: result.appId,
                   txnId: result.txnId,
+                  confirmedRound: result.confirmedRound,
                 }
               : t
           )
@@ -115,7 +116,9 @@ export function useContracts(
 
         setTransactions((prev) =>
           prev.map((t) =>
-            t.id === txId ? { ...t, status: "success", txnId: result.txnId } : t
+            t.id === txId
+              ? { ...t, status: "success", txnId: result.txnId, confirmedRound: result.confirmedRound }
+              : t
           )
         );
 
@@ -167,7 +170,9 @@ export function useContracts(
 
         setTransactions((prev) =>
           prev.map((t) =>
-            t.id === txId ? { ...t, status: "success", txnId: result.txnId } : t
+            t.id === txId
+              ? { ...t, status: "success", txnId: result.txnId, confirmedRound: result.confirmedRound }
+              : t
           )
         );
 
@@ -219,7 +224,9 @@ export function useContracts(
 
         setTransactions((prev) =>
           prev.map((t) =>
-            t.id === txId ? { ...t, status: "success", txnId: result.txnId } : t
+            t.id === txId
+              ? { ...t, status: "success", txnId: result.txnId, confirmedRound: result.confirmedRound }
+              : t
           )
         );
 

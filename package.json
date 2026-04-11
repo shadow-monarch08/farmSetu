@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "e2e:forward": "node backend/scripts/e2e-forward.mjs"
+    "e2e:forward": "node backend/scripts/e2e-forward.mjs",
+    "test:regression": "node backend/scripts/regression-checks.mjs"
   },
   "dependencies": {
     "@algorandfoundation/algokit-utils": "^9.2.0",

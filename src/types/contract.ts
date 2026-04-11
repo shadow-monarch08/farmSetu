@@ -52,6 +52,7 @@ export interface ContractTransaction {
   type: "create" | "accept" | "update_price" | "settle";
   contractId: number;
   txnId?: string;
+  confirmedRound?: number;
   status: "pending" | "success" | "error";
   error?: string;
   timestamp: number;
