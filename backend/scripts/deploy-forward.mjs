@@ -44,7 +44,7 @@ const txn = algosdk.makeApplicationCreateTxnFromObject({
   sender: creator.addr,
   approvalProgram,
   clearProgram,
-  numGlobalInts: 6,
+  numGlobalInts: 7,
   numGlobalByteSlices: 4,
   numLocalInts: 0,
   numLocalByteSlices: 0,

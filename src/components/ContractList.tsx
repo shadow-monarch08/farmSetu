@@ -99,8 +99,8 @@ function ContractList({
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-xl border border-green-100 bg-green-50 p-3">
-                  <p className="text-xs font-semibold text-green-700">Quantity</p>
-                  <p className="mt-1 text-lg font-extrabold text-green-900">{contract.quantity}</p>
+                  <p className="text-xs font-semibold text-green-700">Quantity (quintals)</p>
+                  <p className="mt-1 text-lg font-extrabold text-green-900">{contract.quantity} qtl</p>
                 </div>
                 <div className="rounded-xl border border-green-100 bg-green-50 p-3">
                   <p className="text-xs font-semibold text-green-700">Agreed Forward Price</p>

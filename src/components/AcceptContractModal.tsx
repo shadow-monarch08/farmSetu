@@ -19,6 +19,11 @@ function AcceptContractModal({ contract, onAccept, onClose }: AcceptContractModa
     e.preventDefault();
     setError(null);
 
+    if (depositAmount < 0) {
+      setError("Deposit amount cannot be negative.");
+      return;
+    }
+
     if (depositAmount < requiredDeposit) {
       setError(`Deposit must be at least ${requiredDeposit} ALGO (${contract.quantity} x ${contract.agreed_price})`);
       return;
@@ -47,8 +52,8 @@ function AcceptContractModal({ contract, onAccept, onClose }: AcceptContractModa
 
           <div className="mt-4 rounded-xl border border-green-100 bg-green-50 p-4 text-sm">
             <div className="flex justify-between"><span className="text-slate-600">Crop:</span><span className="font-semibold">{contract.crop_name}</span></div>
-            <div className="mt-2 flex justify-between"><span className="text-slate-600">Quantity:</span><span className="font-semibold">{contract.quantity} units</span></div>
-            <div className="mt-2 flex justify-between"><span className="text-slate-600">Price per unit:</span><span className="font-semibold">{contract.agreed_price} ALGO</span></div>
+            <div className="mt-2 flex justify-between"><span className="text-slate-600">Quantity:</span><span className="font-semibold">{contract.quantity} quintals</span></div>
+            <div className="mt-2 flex justify-between"><span className="text-slate-600">Forward Price:</span><span className="font-semibold">₹{contract.agreed_price.toLocaleString()} per quintal</span></div>
             <div className="mt-3 border-t border-green-200 pt-2 text-emerald-800 font-bold flex justify-between"><span>Minimum Deposit:</span><span>{requiredDeposit} ALGO</span></div>
           </div>
 
@@ -64,8 +69,12 @@ function AcceptContractModal({ contract, onAccept, onClose }: AcceptContractModa
               <input
                 type="number"
                 value={depositAmount}
-                onChange={(e) => setDepositAmount(parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  const parsed = Number.parseFloat(e.target.value);
+                  setDepositAmount(Number.isFinite(parsed) ? Math.max(0, parsed) : 0);
+                }}
                 placeholder={String(requiredDeposit)}
+                min="0"
                 step="0.01"
                 className="fs-input"
               />

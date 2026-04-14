@@ -57,7 +57,7 @@ async function buildArtifacts() {
     approvalHash: forwardContract.approvalHash,
     clearHash: forwardContract.clearHash,
     globalStateSchema: {
-      numInts: 6,
+      numInts: 7,
       numByteSlices: 4,
     },
     localStateSchema: {
@@ -96,7 +96,7 @@ async function buildArtifacts() {
   console.log(`📋 Contract Details:`);
   console.log(`   - Approval Program Hash: ${forwardContract.approvalHash}`);
   console.log(`   - Clear Program Hash: ${forwardContract.clearHash}`);
-  console.log(`   - Global Ints: 6, Global ByteSlices: 4`);
+  console.log(`   - Global Ints: 7, Global ByteSlices: 4`);
   console.log(`   - Local Ints: 0, Local ByteSlices: 0`);
 }
 

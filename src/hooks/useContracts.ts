@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import type {
   CreateContractInput,
   AcceptContractInput,
@@ -17,6 +17,35 @@ import {
 } from "../services/contractService";
 import type { WalletInstance } from "./useWallet";
 
+const TX_STORAGE_KEY = "farmsetu_transactions";
+
+function hasWindow() {
+  return typeof window !== "undefined";
+}
+
+function txStorageKeyFor(address: string) {
+  return `${TX_STORAGE_KEY}:${address}`;
+}
+
+function readTransactionsLocal(address: string): ContractTransaction[] {
+  if (!hasWindow()) return [];
+
+  const raw = window.localStorage.getItem(txStorageKeyFor(address));
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw) as ContractTransaction[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeTransactionsLocal(address: string, transactions: ContractTransaction[]) {
+  if (!hasWindow()) return;
+  window.localStorage.setItem(txStorageKeyFor(address), JSON.stringify(transactions));
+}
+
 /**
  * Custom hook for contract management
  * Handles contract operations and transaction tracking
@@ -29,6 +58,20 @@ export function useContracts(
   const [transactions, setTransactions] = useState<ContractTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!userAddress) {
+      setTransactions([]);
+      return;
+    }
+
+    setTransactions(readTransactionsLocal(userAddress));
+  }, [userAddress]);
+
+  useEffect(() => {
+    if (!userAddress) return;
+    writeTransactionsLocal(userAddress, transactions);
+  }, [transactions, userAddress]);
 
   /**
    * Create a new contract

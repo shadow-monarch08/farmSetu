@@ -40,6 +40,14 @@ function Dashboard({ wallet }: DashboardProps) {
   const active = `${tabBase} fs-tab-active`;
   const safeActiveTab = userRole !== "farmer" && activeTab === "create" ? "list" : activeTab;
 
+  const handleLogout = async () => {
+    try {
+      await wallet.disconnect();
+    } finally {
+      logout();
+    }
+  };
+
   return (
     <div className="min-h-screen py-8">
       <header className="fs-shell fs-glass rounded-2xl px-6 py-5 sm:px-8">
@@ -60,7 +68,9 @@ function Dashboard({ wallet }: DashboardProps) {
               <p className="text-xs text-slate-500 capitalize">{userRole}</p>
             </div>
             <button
-              onClick={logout}
+              onClick={() => {
+                void handleLogout();
+              }}
               className="fs-btn fs-btn-secondary px-4 py-2 text-sm"
             >
               Logout

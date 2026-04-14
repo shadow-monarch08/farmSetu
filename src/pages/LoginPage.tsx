@@ -1,13 +1,21 @@
-import { useState } from "react";
-import { useWallet } from "../hooks/useWallet";
+import { useEffect, useState } from "react";
+import type { UseWalletResult } from "../hooks/useWallet";
 import { useAuth } from "../hooks/useAuth";
 
-function LoginPage() {
-  const wallet = useWallet();
+interface LoginPageProps {
+  wallet: UseWalletResult;
+}
+
+function LoginPage({ wallet }: LoginPageProps) {
   const { login } = useAuth();
   const [connectingRole, setConnectingRole] = useState<"farmer" | "buyer" | null>(null);
 
   const handleConnect = async (role: "farmer" | "buyer") => {
+    if (wallet.isConnected && wallet.accountAddress) {
+      login(role, wallet.accountAddress);
+      return;
+    }
+
     setConnectingRole(role);
     try {
       await wallet.connect();
@@ -18,11 +26,13 @@ function LoginPage() {
     }
   };
 
-  // Auto-login when wallet connects
-  if (wallet.isConnected && wallet.accountAddress && connectingRole) {
-    login(connectingRole, wallet.accountAddress);
-    setConnectingRole(null);
-  }
+  // Auto-login when wallet connects after a deliberate role selection.
+  useEffect(() => {
+    if (wallet.isConnected && wallet.accountAddress && connectingRole) {
+      login(connectingRole, wallet.accountAddress);
+      setConnectingRole(null);
+    }
+  }, [wallet.isConnected, wallet.accountAddress, connectingRole, login]);
 
   return (
     <div className="min-h-screen py-8">

@@ -17,6 +17,7 @@ const KNOWN_APP_IDS_KEY = "farmsetu_known_app_ids";
 const ADDRESS_REGEX = /^[A-Z2-7]{58}$/;
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder();
+const FACTORY_APP_ID = Number(import.meta.env.VITE_FACTORY_APP_ID || 1007);
 
 type SignerTransaction = { txn: algosdk.Transaction; signers?: string[]; authAddr?: string };
 
@@ -29,6 +30,37 @@ function hasWindow() {
 
 function asUint8(value: Uint8Array | number[]) {
   return value instanceof Uint8Array ? value : new Uint8Array(value);
+}
+
+function decodeStateKey(key: string | Uint8Array): string {
+  if (key instanceof Uint8Array) {
+    return bytesToString(key);
+  }
+
+  try {
+    return bytesToString(base64ToBytes(key));
+  } catch {
+    // Some SDK/indexer responses can already contain plain keys.
+    return key;
+  }
+}
+
+function decodeMaybeBase64(value: string | Uint8Array): Uint8Array | null {
+  if (value instanceof Uint8Array) {
+    return value;
+  }
+
+  try {
+    return base64ToBytes(value);
+  } catch {
+    try {
+      const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+      const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
+      return base64ToBytes(padded);
+    } catch {
+      return null;
+    }
+  }
 }
 
 function ensureAddress(address: string, name: string) {
@@ -47,8 +79,25 @@ async function sendTransactions(
   txns: SignerTransaction[],
   signerAddress?: string
 ): Promise<string> {
-  const signed = await wallet.signTransaction([txns], signerAddress);
-  const result = await algodClient.sendRawTransaction(signed).do();
+  const normalizedTxns = txns.map((entry) => ({
+    ...entry,
+    signers: entry.signers ?? (signerAddress ? [signerAddress] : undefined),
+  }));
+  const signedResponse = await wallet.signTransaction([normalizedTxns]);
+
+  // Pera can return signed payloads with nullable entries; remove empties defensively.
+  const signed = (Array.isArray(signedResponse) ? signedResponse : [])
+    .flatMap((item) => (item instanceof Uint8Array ? [item] : []))
+    .filter((blob) => blob.byteLength > 0);
+
+  if (signed.length === 0) {
+    throw new Error(
+      "Wallet returned no signed transactions. Please reconnect wallet and approve the signature request."
+    );
+  }
+
+  const payload = signed.length === 1 ? signed[0] : signed;
+  const result = await algodClient.sendRawTransaction(payload).do();
   return result.txid as string;
 }
 
@@ -116,8 +165,7 @@ function parseGlobalState(
 ): FarmSetuForwardContract {
   const kv = new Map<string, { type: number; uint?: number | bigint; bytes?: string | Uint8Array }>();
   for (const item of globalState) {
-    const keyName =
-      typeof item.key === "string" ? bytesToString(base64ToBytes(item.key)) : bytesToString(item.key);
+    const keyName = decodeStateKey(item.key);
     kv.set(keyName, item.value);
   }
 
@@ -127,7 +175,8 @@ function parseGlobalState(
   const bytesToAddress = (key: string) => {
     const raw = getBytes(key);
     if (!raw) return null;
-    const addrBytes = typeof raw === "string" ? base64ToBytes(raw) : raw;
+    const addrBytes = decodeMaybeBase64(raw);
+    if (!addrBytes) return null;
     if (addrBytes.length !== 32) return null;
     return algosdk.encodeAddress(asUint8(addrBytes));
   };
@@ -135,7 +184,8 @@ function parseGlobalState(
   const decodeCrop = () => {
     const raw = getBytes("CN");
     if (!raw) return "";
-    const cropBytes = typeof raw === "string" ? base64ToBytes(raw) : raw;
+    const cropBytes = decodeMaybeBase64(raw);
+    if (!cropBytes) return "";
     return textDecoder.decode(cropBytes);
   };
 
@@ -173,11 +223,13 @@ async function createForwardContractOnChain(
 
   const params = await algodClient.getTransactionParams().do();
   const agreedPriceMicro = algoToMicroAlgos(input.agreedPrice);
+  
+  // 1. Deploy the Forward Contract
   const createTxn = algosdk.makeApplicationCreateTxnFromObject({
     sender: userAddress,
     approvalProgram,
     clearProgram,
-    numGlobalInts: 6,
+    numGlobalInts: 7,
     numGlobalByteSlices: 4,
     numLocalInts: 0,
     numLocalByteSlices: 0,
@@ -196,6 +248,33 @@ async function createForwardContractOnChain(
   const confirmed = await waitConfirmed(txId);
   const appId = Number(confirmed.applicationIndex);
   rememberAppId(appId);
+
+  // 2. Factory Registration (ABI Encoded)
+  // Maps directly to TEALScript: registerTrade(contractId: uint64, seller: Address)
+  const registerMethod = algosdk.ABIMethod.fromSignature("registerTrade(uint64,address)void");
+  
+  const factoryTxn = algosdk.makeApplicationNoOpTxnFromObject({
+    sender: userAddress,
+    appIndex: FACTORY_APP_ID,
+    appArgs: [
+      registerMethod.getSelector(),
+      algosdk.encodeUint64(appId),                     // FIX: Bypass ABI generic, use native uint64 encoder
+      algosdk.decodeAddress(userAddress).publicKey     // FIX: Bypass ABI generic, use native address decoder
+    ],
+    // Box reference required for the Factory's BoxMap storage
+    boxes: [
+      { appIndex: FACTORY_APP_ID, name: algosdk.encodeUint64(appId) }
+    ],
+    suggestedParams: params,
+  });
+
+  // Execute factory registration as a best-effort step for hackathon compatibility.
+  // If factory is not deployed, the contract app is still valid and usable by APP_ID.
+  try {
+    await sendTransactions(wallet, [{ txn: factoryTxn }], userAddress);
+  } catch (error) {
+    console.warn("Factory registration skipped:", error);
+  }
 
   return { appId, txnId: txId, confirmedRound: toRound(confirmed.confirmedRound) };
 }
@@ -257,17 +336,68 @@ async function settleContractOnChain(
   wallet: WalletInstance,
   userAddress: string
 ): Promise<{ txnId: string; settlementAmount: number; confirmedRound?: number }> {
+  const contract = await fetchContractFromChain(input.contractId);
+  const appAddress = algosdk.getApplicationAddress(input.contractId);
+  const [app, appAccount] = await Promise.all([
+    algodClient.getApplicationByID(input.contractId).do(),
+    algodClient.accountInformation(appAddress).do(),
+  ]);
+
+  const appGlobalState = app.params.globalState || [];
+  const depositedAmountRaw = appGlobalState.find((entry: { key: string }) => {
+    const keyName = decodeStateKey(entry.key);
+    return keyName === "DP";
+  })?.value?.uint;
+
+  const depositedMicroAlgos =
+    typeof depositedAmountRaw === "bigint"
+      ? Number(depositedAmountRaw)
+      : typeof depositedAmountRaw === "number"
+      ? depositedAmountRaw
+      : 0;
+
+  const escrowBalance = Number(appAccount.amount || 0);
+  const minAccountBalance = 100_000;
+  const projectedBalanceAfterSettle = escrowBalance - depositedMicroAlgos;
+  const topUpAmount = Math.max(0, minAccountBalance - projectedBalanceAfterSettle);
+
   const params = await algodClient.getTransactionParams().do();
   const settleParams = { ...params, flatFee: true, fee: 2_000 };
+
+  // Inner transactions use FA/BA from global state as receivers; include them as available accounts.
+  const accounts = Array.from(
+    new Set(
+      [contract.farmer_address, contract.buyer_address]
+        .filter((address): address is string => !!address)
+        .filter((address) => address !== algosdk.ALGORAND_ZERO_ADDRESS_STRING)
+    )
+  );
 
   const callTxn = algosdk.makeApplicationNoOpTxnFromObject({
     sender: userAddress,
     appIndex: input.contractId,
     appArgs: [textEncoder.encode("settle")],
+    accounts,
     suggestedParams: settleParams,
   });
 
-  const txId = await sendTransactions(wallet, [{ txn: callTxn }], userAddress);
+  const txns: SignerTransaction[] = [];
+  if (topUpAmount > 0) {
+    const topUpTxn = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
+      sender: userAddress,
+      receiver: appAddress,
+      amount: topUpAmount,
+      suggestedParams: params,
+    });
+    txns.push({ txn: topUpTxn });
+  }
+
+  txns.push({ txn: callTxn });
+  if (txns.length > 1) {
+    algosdk.assignGroupID(txns.map((entry) => entry.txn));
+  }
+
+  const txId = await sendTransactions(wallet, txns, userAddress);
   const confirmed = await waitConfirmed(txId);
 
   const updated = await fetchContractFromChain(input.contractId);

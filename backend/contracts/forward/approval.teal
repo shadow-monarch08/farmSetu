@@ -246,7 +246,7 @@ int 2
 bnz buyer_wins
 
 prices_equal:
-; Prices are equal - return deposit to farmer
+// Prices are equal - return deposit to farmer
 itxn_begin
 int pay
 itxn_field TypeEnum
@@ -262,7 +262,7 @@ itxn_submit
 b settlement_complete
 
 farmer_wins:
-; Current price > agreed price - farmer gets deposit + settlement amount
+// Current price > agreed price - farmer gets deposit + settlement amount
 itxn_begin
 int pay
 itxn_field TypeEnum
@@ -281,8 +281,8 @@ itxn_submit
 b settlement_complete
 
 buyer_wins:
-; Agreed price > current price - buyer gets settlement amount, farmer gets deposit - settlement amount
-; First pay settlement amount to buyer
+// Agreed price > current price - buyer gets settlement amount, farmer gets deposit - settlement amount
+// First pay settlement amount to buyer
 itxn_begin
 int pay
 itxn_field TypeEnum
@@ -296,7 +296,7 @@ int 0
 itxn_field Fee
 itxn_submit
 
-; Then pay remaining deposit back to farmer
+// Then pay remaining deposit back to farmer
 itxn_begin
 int pay
 itxn_field TypeEnum

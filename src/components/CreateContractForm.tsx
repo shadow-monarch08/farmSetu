@@ -24,9 +24,20 @@ function CreateContractForm({ onSubmit, isLoading, userAddress }: CreateContract
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
+    if (name === "quantity" || name === "agreedPrice") {
+      const parsed = Number.parseFloat(value);
+      const nonNegative = Number.isFinite(parsed) ? Math.max(0, parsed) : 0;
+      setFormData((prev) => ({
+        ...prev,
+        [name]: nonNegative,
+      }));
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "quantity" || name === "agreedPrice" ? parseFloat(value) || 0 : value,
+      [name]: value,
     }));
   };
 
@@ -171,15 +182,20 @@ function CreateContractForm({ onSubmit, isLoading, userAddress }: CreateContract
 
         <div className="grid gap-4 md:grid-cols-2">
           <div>
-            <label className="fs-label">Quantity (units)</label>
+            <label className="fs-label">Quantity (quintals)</label>
             <input
               type="number"
               name="quantity"
               value={formData.quantity}
               onChange={handleChange}
               placeholder="100"
+              min="1"
+              step="1"
               className="fs-input"
             />
+            <p className="mt-1 text-xs text-slate-500">
+              Enter quantity in quintals only (not KG).
+            </p>
           </div>
           <div>
             <label className="fs-label">Forward Price per quintal (INR)</label>
@@ -188,12 +204,13 @@ function CreateContractForm({ onSubmit, isLoading, userAddress }: CreateContract
               name="agreedPrice"
               value={formData.agreedPrice}
               onChange={handleChange}
-              step="10"
+              min="1"
+              step="1"
               placeholder="2000"
               className="fs-input"
             />
             <p className="mt-1 text-xs text-slate-500">
-              This is your agreed forward price in INR per quintal. Settlement will use current market prices from the oracle.
+              This is your agreed forward price in INR per quintal. Negative values are not allowed.
             </p>
           </div>
         </div>

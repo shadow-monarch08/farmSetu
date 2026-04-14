@@ -7,6 +7,7 @@ interface TransactionHistoryProps {
 function TransactionHistory({ transactions }: TransactionHistoryProps) {
   const formatTime = (timestamp: number) => new Date(timestamp).toLocaleString();
   const explorerBaseUrl = (import.meta.env.VITE_EXPLORER_BASE_URL || "https://testnet.algoexplorer.io").replace(/\/$/, "");
+  const loraBaseUrl = (import.meta.env.VITE_LORA_BASE_URL || "https://lora.algokit.io/testnet").replace(/\/$/, "");
 
   const getTypeLabel = (type: ContractTransaction["type"]) => {
     const labels: Record<ContractTransaction["type"], string> = {
@@ -47,14 +48,24 @@ function TransactionHistory({ transactions }: TransactionHistoryProps) {
                   {tx.contractId === 0 ? (
                     "New"
                   ) : (
-                    <a
-                      href={`${explorerBaseUrl}/application/${tx.contractId}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-semibold text-green-700 hover:underline"
-                    >
-                      #{tx.contractId}
-                    </a>
+                    <div className="space-y-1">
+                      <a
+                        href={`${explorerBaseUrl}/application/${tx.contractId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block font-semibold text-green-700 hover:underline"
+                      >
+                        #{tx.contractId}
+                      </a>
+                      <a
+                        href={`${loraBaseUrl}/application/${tx.contractId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex rounded-lg border border-green-200 bg-white px-2 py-1 text-[11px] font-bold text-green-700 transition hover:border-green-300 hover:bg-green-50"
+                      >
+                        View on LORA
+                      </a>
+                    </div>
                   )}
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-600">{formatTime(tx.timestamp)}</td>
@@ -80,7 +91,15 @@ function TransactionHistory({ transactions }: TransactionHistoryProps) {
                         rel="noreferrer"
                         className="block font-semibold text-green-700 hover:underline"
                       >
-                        {tx.txnId.slice(0, 18)}...
+                        {tx.txnId.slice(0, 18)}... (Explorer)
+                      </a>
+                      <a
+                        href={`${loraBaseUrl}/transaction/${tx.txnId}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex rounded-lg border border-green-200 bg-white px-2 py-1 text-[11px] font-bold text-green-700 transition hover:border-green-300 hover:bg-green-50"
+                      >
+                        View on LORA
                       </a>
                       {typeof tx.confirmedRound === "number" && tx.confirmedRound > 0 && (
                         <span className="text-[11px] font-medium text-slate-500">

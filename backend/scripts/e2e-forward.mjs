@@ -53,7 +53,7 @@ const createTxn = algosdk.makeApplicationCreateTxnFromObject({
   sender: farmer.addr,
   approvalProgram,
   clearProgram,
-  numGlobalInts: 6,
+  numGlobalInts: 7,
   numGlobalByteSlices: 4,
   numLocalInts: 0,
   numLocalByteSlices: 0,
