@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  farmsetu:
+    build: .
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_NODE_URL=https://testnet-api.algonode.cloud
+      - VITE_INDEXER_URL=https://testnet-idx.algonode.cloud
+      - VITE_CONTRACT_MODE=onchain
+    volumes:
+      - .:/app
+      - /app/node_modules
