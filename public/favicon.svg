@@ -1,6 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
-  <rect width="32" height="32" rx="6" fill="#10b981"/>
-  <path d="M8 12L16 8L24 12V20L16 24L8 20V12Z" fill="white"/>
-  <path d="M12 14L16 12L20 14V18L16 20L12 18V14Z" fill="#10b981"/>
-  <circle cx="16" cy="16" r="2" fill="white"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf" />
+      <stop offset="50%" stop-color="#10b981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <linearGradient id="leafGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a7f3d0" />
+      <stop offset="100%" stop-color="#ffffff" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#064e3b" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- Modern rounded canvas background -->
+  <rect width="512" height="512" rx="120" fill="url(#bgGradient)" />
+  
+  <g filter="url(#shadow)">
+    <!-- Right leaf: Arching over, representing "Setu" (Bridge/Connection) -->
+    <path d="M 256 140 C 370 140, 400 240, 400 320 C 400 360, 360 400, 280 400 C 180 400, 256 220, 256 140 Z" fill="url(#leafGradient)"/>
+    
+    <!-- Left leaf: Growing, representing "Farm" (Agriculture) -->
+    <path d="M 256 140 C 142 140, 112 240, 112 320 C 112 360, 152 400, 232 400 C 332 400, 256 220, 256 140 Z" fill="#ffffff" fill-opacity="0.95" />
+    
+    <!-- Central intersection dot: representing the Seed and Blockchain Node -->
+    <circle cx="256" cy="330" r="36" fill="#047857" />
+    <circle cx="256" cy="330" r="28" fill="#10b981" />
+  </g>
 </svg>

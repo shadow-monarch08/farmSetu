@@ -344,7 +344,7 @@ async function settleContractOnChain(
   ]);
 
   const appGlobalState = app.params.globalState || [];
-  const depositedAmountRaw = appGlobalState.find((entry: { key: string }) => {
+  const depositedAmountRaw = appGlobalState.find((entry: any) => {
     const keyName = decodeStateKey(entry.key);
     return keyName === "DP";
   })?.value?.uint;
