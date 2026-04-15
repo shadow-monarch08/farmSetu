@@ -8,6 +8,7 @@ build/
 coverage/
 **/coverage/
 *.tsbuildinfo
+package-lock.json
 
 # Env files (VERY IMPORTANT)
 .env
